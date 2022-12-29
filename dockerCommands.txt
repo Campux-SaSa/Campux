@@ -1,0 +1,23 @@
+// Creating a container of mongodb
+docker container run --name mongodb --publish 27017:27017 -d mongo
+// Getting access through the mongo 
+docker container exec -it mydatabase bash
+// Using software mongo
+mongo
+// Creating a database
+use mydbone
+// Exiting mongo shell
+exit
+// Adding authentication to the database
+mongo --port 27017 -u username -p password --authenticationDatabase mydbone
+
+
+// With authentication
+docker run -d -p 27017:27017 --name database -v mongo-data:/data/db -e MONGODB_INITDB_ROOT_USERNAME=Campux -e MONGODB_INITDB_ROOT_PASSWORD=Parvardegar mongo:latest
+
+
+// Starting a redis instance, First instance is called redisCache
+docker run --name some-redis -d redis
+
+// Connecting to it with redis-cli
+docker run -it --network some-network --rm redis redis-cli -h some-redis
