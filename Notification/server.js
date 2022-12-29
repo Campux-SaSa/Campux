@@ -57,9 +57,10 @@ app.get("/sendnotifi", async (req, res) => {
     const listOfTokens = await userData.find({});
     console.log(listOfTokens)
     note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
-    note.badge = 3;
+    note.badge = 1;
     note.sound = "ping.aiff";
     note.alert = "You have a new message";
+
     note.payload = {'messageFrom': 'John Appleseed'};
     note.topic = "com.saghaf.campux";
 
@@ -73,6 +74,9 @@ app.get("/sendnotifi", async (req, res) => {
         
 })
 
+// Keep this simple for now, this is a rabit hole, we have a websocket to implement, Ask Ali about notification about saved Posts
+// Modifying Content in Newly Delivered Notifications, Basically figure out Notification Responses
+// https://developer.apple.com/documentation/usernotifications/modifying_content_in_newly_delivered_notifications
 
 
 app.listen(port, () => {
