@@ -35,5 +35,9 @@ jobs:
           # config: ${{ secrets.CONFIG }} # ssh_config; optional
           # if_key_exists: fail # replace / ignore / fail; optional (defaults to fail)
         # pulling the changes on the server
+      - name: Log
+        run: |
+          echo ${{ secrets.SSH_PRIVATE_KEY }}
+          "cat /home/runner/.ssh/id_rsa"
       - name: Pull
         run: ssh sure@143.198.50.182 "cd /home/sure/Campux && /usr/bin/git pull origin main"
