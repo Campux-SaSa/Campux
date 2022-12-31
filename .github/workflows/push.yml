@@ -1,5 +1,3 @@
-# This is a basic workflow to help you get started with Actions
-
 name: CI
 
 # Controls when the workflow will run
@@ -22,22 +20,20 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-#       - uses: actions/checkout@v3
-
-      # Runs a single command using the runners shell
-      - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2
+      - name: ssh key passphrase
+        uses: appleboy/ssh-action@master
         with:
+          host: 143.198.50.182
+          username: sure
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          name: id_rsa # optional
-          known_hosts: ${{ secrets.KNOWN_HOSTS }}
-          # config: ${{ secrets.CONFIG }} # ssh_config; optional
-          # if_key_exists: fail # replace / ignore / fail; optional (defaults to fail)
-        # pulling the changes on the server
-      - name: Log
-        run: |
-          echo ${{ secrets.SSH_PRIVATE_KEY }}
-          "cat /home/runner/.ssh/id_rsa"
-      - name: Pull
-        run: ssh sure@143.198.50.182 "cd /home/sure/Campux && /usr/bin/git pull origin main"
+          passphrase: ${{ secrets.SSH_PASSPHRASE }}
+          script: |
+            cd /home/sure/Campux
+            # /usr/bin/git pull origin main
+            ls
+            /usr/bin/git status
+            git config --global --unset user.name
+            git config --global --unset user.email
+            git config --global user.name "alisalamatian1"
+            git config --global user.email "alisalamatian1@gmail.com"
+            /usr/bin/git pull origin main     
