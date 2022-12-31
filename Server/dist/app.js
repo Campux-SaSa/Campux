@@ -31,6 +31,10 @@ const replySchema = new mongoose_1.Schema({
     report: { type: Number, required: true },
     authorID: { type: String, required: true }
 });
+const attachmentSchema = new mongoose_1.Schema({
+    id: { type: String, required: true },
+    data: { type: buffer_1.Buffer, required: false }
+});
 const postSchema = new mongoose_1.Schema({
     id: { type: String, required: true },
     title: { type: String, required: true },
@@ -43,7 +47,7 @@ const postSchema = new mongoose_1.Schema({
     numOfViews: { type: Number, required: true },
     channel: { type: String, required: true },
     report: { type: Number, required: true },
-    attachment: { type: buffer_1.Buffer, required: false }
+    attachment: { type: attachmentSchema, required: false }
 });
 // 2. Create a Schema corresponding to the document interface.
 const userSchema = new mongoose_1.Schema({
@@ -54,10 +58,11 @@ const userSchema = new mongoose_1.Schema({
 // 3. Create a Model.
 const Post = (0, mongoose_1.model)('Post', postSchema);
 const Reply = (0, mongoose_1.model)('Reply', replySchema);
+const Attachment = (0, mongoose_1.model)('Attachment', attachmentSchema);
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         // 4. Connect to MongoDB
-        yield (0, mongoose_1.connect)('mongodb://127.0.0.1:27017/DB');
+        yield (0, mongoose_1.connect)("mongodb://AzureDiamond:Parvardegar007Saghafian@localhost:27017/db?authSource=admin");
     });
 }
 app.get('/', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -70,38 +75,62 @@ app.get('/post', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 }));
 //Todo: Saving the req body as a Post to the database
 app.post('/post', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const attachment = req.body.attachment;
-    yield Post.create({
-        id: req.body.id,
-        title: req.body.title,
-        body: req.body.body,
-        campus: req.body.campus,
-        date: req.body.date,
-        votes: req.body.votes,
-        authorID: req.body.authorID,
-        numOfReplies: req.body.numOfReplies,
-        numOfViews: req.body.numOfViews,
-        channel: req.body.channel,
-        report: req.body.report,
-        attachment: req.body.attachment.data
-    });
-    console.log("we good");
+    console.log((_a = req.body.attachment) === null || _a === void 0 ? void 0 : _a.id);
+    if (req.body.attachment !== null) {
+        yield Post.create({
+            id: req.body.id,
+            title: req.body.title,
+            body: req.body.body,
+            campus: req.body.campus,
+            date: req.body.date,
+            votes: req.body.votes,
+            authorID: req.body.authorID,
+            numOfReplies: req.body.numOfReplies,
+            numOfViews: req.body.numOfViews,
+            channel: req.body.channel,
+            report: req.body.report,
+            attachment: { id: req.body.attachment.id }
+        });
+        if (req.body.attachment.id !== "") {
+            yield Attachment.create({
+                id: req.body.attachment.id,
+                data: req.body.attachment.data.data
+            });
+        }
+    }
+    else {
+        yield Post.create({
+            id: req.body.id,
+            title: req.body.title,
+            body: req.body.body,
+            campus: req.body.campus,
+            date: req.body.date,
+            votes: req.body.votes,
+            authorID: req.body.authorID,
+            numOfReplies: req.body.numOfReplies,
+            numOfViews: req.body.numOfViews,
+            channel: req.body.channel,
+            report: req.body.report,
+            attachment: null
+        });
+    }
     //await newPost.save();
-    console.log("we good 2");
     res.send("Created");
 }));
 // Be careful of the query variables
 app.get('/post/query', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const feed = parseInt(req.query["feed"]);
     let channel = req.query["channel"];
-    console.log(channel);
+    //console.log(channel)
     if (feed === 0) {
         res.json(yield Post.find({ 'channel': channel }).sort({ votes: -1 }).limit(50));
     }
     else {
         res.json(yield Post.find({ 'channel': channel }).sort({ date: -1 }).limit(50));
     }
-    console.log(yield Post.count());
+    //console.log(await Post.count())
 }));
 app.get("/post/popular", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     res.json(yield Post.find({}).sort({ votes: -1 }).limit(50));
@@ -129,8 +158,8 @@ app.get("/post/down", (req, res) => __awaiter(void 0, void 0, void 0, function* 
 app.get("/post/load", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const feed = parseInt(req.query["feed"]);
     const load = parseInt(req.query["load"]);
-    console.log(feed);
-    console.log(load);
+    //console.log(feed)
+    //console.log(load)
     let channel = req.query["channel"];
     if (channel === "") {
         if (feed === 0) {
@@ -197,9 +226,17 @@ app.post("/post/reply/update", (req, res) => __awaiter(void 0, void 0, void 0, f
     yield Post.findOneAndUpdate({ "id": req.body.postID }, { $inc: { numOfReplies: 1 } });
     res.send("New Reply");
 }));
+// This is an admin endpoint
 app.get("/Delete", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     yield Post.deleteMany({});
     res.send("everything deleted");
+}));
+//The iamge end point
+app.get("/post/attachment", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("fuck");
+    let id = req.query["id"];
+    const foundAtt = yield Attachment.findOne({ id: id }).exec();
+    res.send(foundAtt);
 }));
 // The strings are tricky, I will get back to it
 /*
@@ -256,7 +293,7 @@ app.post("/user", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 // Send notification to users with the tokens that was stored in the database
 app.get("/sendnotifi", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var note = new node_apn_1.default.Notification();
-    console.log(req.body);
+    //console.log(req.body)
     const listOfTokens = yield userData.find({});
     note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
     note.badge = 1;
@@ -265,7 +302,7 @@ app.get("/sendnotifi", (req, res) => __awaiter(void 0, void 0, void 0, function*
     // This payload is wehre the magic happens -> Navigating through the app
     note.payload = { 'messageFrom': 'John Appleseed', "Screen": 1 };
     note.topic = "com.saghaf.campux";
-    console.log(listOfTokens.length);
+    //console.log(listOfTokens.length)
     listOfTokens.forEach(obj => {
         apnProvider.send(note, obj.deviceToken).then((result) => {
             // see documentation for an explanation of result
@@ -286,4 +323,6 @@ app.listen(port, () => {
 // https://www.dev2qa.com/how-to-run-node-js-server-in-background/
 // Image is not working right now till I figure out what is wrong
 // I am going to work on the notification 
+// My name is Eminem
+// My name is SLimShady
 //# sourceMappingURL=app.js.map
