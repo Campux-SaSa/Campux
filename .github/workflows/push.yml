@@ -29,11 +29,4 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd /home/sure/Campux
-            # /usr/bin/git pull origin main
-            ls
-            /usr/bin/git status
-            git config --global --unset user.name
-            git config --global --unset user.email
-            git config --global user.name "alisalamatian1"
-            git config --global user.email "alisalamatian1@gmail.com"
             /usr/bin/git pull origin main     
