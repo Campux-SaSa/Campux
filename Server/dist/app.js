@@ -21,6 +21,7 @@ app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ limit: "50mb", extended: true, parameterLimit: 50000 }));
 const port = 8000;
 const mongoose_1 = require("mongoose");
+const node_apn_1 = __importDefault(require("@parse/node-apn"));
 const replySchema = new mongoose_1.Schema({
     id: { type: String, required: true },
     postID: { type: String, required: true },
@@ -51,7 +52,6 @@ const userSchema = new mongoose_1.Schema({
     avatar: String
 });
 // 3. Create a Model.
-const User = (0, mongoose_1.model)('User', userSchema);
 const Post = (0, mongoose_1.model)('Post', postSchema);
 const Reply = (0, mongoose_1.model)('Reply', replySchema);
 function run() {
@@ -129,6 +129,8 @@ app.get("/post/down", (req, res) => __awaiter(void 0, void 0, void 0, function* 
 app.get("/post/load", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const feed = parseInt(req.query["feed"]);
     const load = parseInt(req.query["load"]);
+    console.log(feed);
+    console.log(load);
     let channel = req.query["channel"];
     if (channel === "") {
         if (feed === 0) {
@@ -214,9 +216,67 @@ app.get("/Delete", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
     path('post/reply/down/', views.reply_downVote), --> Done
     path('post/reply/', views.reply_crud), --> Done
     path('post/reply/update/', views.reply_update), --> DONE
-    path('email/send/', views.email_send),
-    path('email/verify/', views.email_verify)
+    path('email/send/', views.email_send), --> Done
+    path('email/verify/', views.email_verify) --> Done
 */
+// NOTIFICATION CODE STARTs
+var options = {
+    token: {
+        key: "./cert/AuthKey_3FNCPL649B.p8",
+        // These need to be env file
+        keyId: "3FNCPL649B",
+        teamId: "A6JH7Q9Q2D"
+    },
+    production: false
+};
+var apnProvider = new node_apn_1.default.Provider(options);
+// This needs to becoming from a database of tokens defnitely
+let deviceToken = "A1F061D4E37FF96C5F6EA87EF08980370A358C5DC6AAE165269D89418F8D4567";
+const UserData = new mongoose_1.Schema({
+    userID: { type: String },
+    deviceToken: { type: String }
+});
+const userData = (0, mongoose_1.model)('UserData', UserData);
+// We probably need to figure out some JWT security later here
+// The userData model is good for chat and other stuff probably 
+app.post("/user", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const foundUser = yield userData.findOne({ deviceToken: req.body.deviceToken }).exec();
+    const newUserData = new userData({
+        userID: req.body.userID,
+        deviceToken: req.body.deviceToken
+    });
+    if (foundUser !== null) {
+        res.send("UserData existed");
+    }
+    else {
+        yield newUserData.save();
+        res.send("New UserData");
+    }
+}));
+// Send notification to users with the tokens that was stored in the database
+app.get("/sendnotifi", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var note = new node_apn_1.default.Notification();
+    console.log(req.body);
+    const listOfTokens = yield userData.find({});
+    note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+    note.badge = 1;
+    note.sound = "ping.aiff";
+    note.alert = req.body;
+    // This payload is wehre the magic happens -> Navigating through the app
+    note.payload = { 'messageFrom': 'John Appleseed', "Screen": 1 };
+    note.topic = "com.saghaf.campux";
+    console.log(listOfTokens.length);
+    listOfTokens.forEach(obj => {
+        apnProvider.send(note, obj.deviceToken).then((result) => {
+            // see documentation for an explanation of result
+            console.log(result);
+        });
+    });
+    res.send("Notification sent");
+}));
+// Keep this simple for now, this is a rabit hole, we have a websocket to implement, Ask Ali about notification about saved Posts
+// Modifying Content in Newly Delivered Notifications, Basically figure out Notification Responses
+// https://developer.apple.com/documentation/usernotifications/modifying_content_in_newly_delivered_notifications
 app.listen(port, () => {
     run().catch(err => console.log(err));
     console.log("running");
