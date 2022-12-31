@@ -35,6 +35,14 @@ const replySchema = new Schema<IReply>({
   report: {type: Number, required: true},
   authorID: {type: String, required: true}
 })
+interface IAttachment{
+  id: string
+  data: Buffer
+}
+const attachmentSchema = new Schema<IAttachment>({
+  id: {type: String, required: true},
+  data: {type: Buffer, required: false}
+})
 
 interface IPost{
      id: string
@@ -48,7 +56,7 @@ interface IPost{
      numOfViews: number
      channel: string
      report: number
-     attachment?: Buffer
+     attachment?: IAttachment
 }
 
 const postSchema = new Schema<IPost>({
@@ -63,8 +71,9 @@ const postSchema = new Schema<IPost>({
   numOfViews: {type: Number, required: true},
   channel: {type: String, required: true},
   report: {type: Number, required: true},
-  attachment: {type: Buffer, required: false}
+  attachment: {type: attachmentSchema, required: false}
 })
+
 
 // 2. Create a Schema corresponding to the document interface.
 const userSchema = new Schema<IUser>({
@@ -77,10 +86,11 @@ const userSchema = new Schema<IUser>({
 
 const Post = model<IPost>('Post', postSchema);
 const Reply = model<IReply>('Reply', replySchema);
+const Attachment = model<IAttachment>('Attachment', attachmentSchema)
 
 async function run() {
   // 4. Connect to MongoDB
-  await connect('mongodb://127.0.0.1:27017/DB');
+  await connect("mongodb://AzureDiamond:Parvardegar007Saghafian@localhost:27017/db?authSource=admin");
 }
 
 app.get('/', async (req, res) => {
@@ -96,6 +106,8 @@ app.get('/post', async (req, res) => {
 
 app.post('/post', async (req, res) => {
   const attachment = (req.body.attachment as Buffer)
+  console.log(req.body.attachment?.id)
+  if(req.body.attachment !== null){
   await Post.create({
      id: req.body.id,
      title: req.body.title,
@@ -108,11 +120,32 @@ app.post('/post', async (req, res) => {
      numOfViews: req.body.numOfViews,
      channel: req.body.channel,
      report: req.body.report,
-     attachment: req.body.attachment.data
+     attachment: {id: req.body.attachment.id}
   })
-  console.log("we good")
+  if(req.body.attachment.id !== ""){
+    await Attachment.create({
+      id: req.body.attachment.id,
+      data: req.body.attachment.data.data
+    })
+  }
+}else{
+  await Post.create({
+    id: req.body.id,
+    title: req.body.title,
+    body: req.body.body,
+    campus: req.body.campus,
+    date: req.body.date,
+    votes: req.body.votes,
+    authorID: req.body.authorID,
+    numOfReplies: req.body.numOfReplies,
+    numOfViews: req.body.numOfViews,
+    channel: req.body.channel,
+    report: req.body.report,
+    attachment: null
+ })
+ 
+}
   //await newPost.save();
-  console.log("we good 2")
   res.send("Created")
 })
 
@@ -120,13 +153,13 @@ app.post('/post', async (req, res) => {
 app.get('/post/query', async (req, res) =>{
   const feed = parseInt(req.query["feed"] as string)
   let channel = req.query["channel"] as string
-  console.log(channel)
+  //console.log(channel)
   if (feed === 0){
     res.json(await Post.find({'channel': channel}).sort({votes: -1}).limit(50))
   }else{
     res.json(await Post.find({'channel': channel}).sort({date: -1}).limit(50))
   }
-  console.log(await Post.count())
+  //console.log(await Post.count())
 })
 
 app.get("/post/popular", async (req, res) => {
@@ -165,8 +198,8 @@ app.get("/post/load", async (req, res) => {
   
   const feed = parseInt(req.query["feed"] as string)
   const load = parseInt(req.query["load"] as string)
-  console.log(feed)
-  console.log(load)
+  //console.log(feed)
+  //console.log(load)
   let channel = req.query["channel"] as string
   if(channel === ""){
     if(feed === 0){
@@ -239,10 +272,21 @@ app.post("/post/reply/update", async (req, res) => {
   res.send("New Reply")
 })
 
+// This is an admin endpoint
 app.get("/Delete", async (req, res) => {
   await Post.deleteMany({})
   res.send("everything deleted")
 })
+
+//The iamge end point
+app.get("/post/attachment", async (req, res) => {
+  console.log("fuck")
+  let id = req.query["id"] as string
+  
+  const foundAtt = await Attachment.findOne({ id: id }).exec()
+  res.send(foundAtt)
+})
+
 // The strings are tricky, I will get back to it
 /*
     path('post/', views.post_crud), --> This is done
@@ -310,7 +354,7 @@ import { NotificationAlertOptions } from '@parse/node-apn';
 // Send notification to users with the tokens that was stored in the database
 app.get("/sendnotifi", async (req, res) => {
   var note = new apn.Notification();
-  console.log(req.body)
+  //console.log(req.body)
   const listOfTokens = await userData.find({});
   note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
   note.badge = 1;
@@ -319,7 +363,7 @@ app.get("/sendnotifi", async (req, res) => {
   // This payload is wehre the magic happens -> Navigating through the app
   note.payload = {'messageFrom': 'John Appleseed', "Screen": 1};
   note.topic = "com.saghaf.campux";
-  console.log(listOfTokens.length)
+  //console.log(listOfTokens.length)
   listOfTokens.forEach(obj => {
       apnProvider.send(note, obj.deviceToken).then( (result) => {
           // see documentation for an explanation of result

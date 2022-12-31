@@ -21,3 +21,16 @@ docker run --name some-redis -d redis
 
 // Connecting to it with redis-cli
 docker run -it --network some-network --rm redis redis-cli -h some-redis
+
+
+docker run -d -p 27017:27017 --name container_name \
+      -e MONGO_INITDB_ROOT_USERNAME=admin \
+      -e MONGO_INITDB_ROOT_PASSWORD=password \
+      mongo
+
+ // The -v is for persistence so if we restart the mongo, the data stays
+
+docker run --name dada1 -d -v ~/data/db -p 27017:27017  mongo
+
+// The used command for our mongodb
+docker run --name dbmongo -d --restart unless-stopped -v ~/data/db -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=AzureDiamond -e MONGO_INITDB_ROOT_PASSWORD=Parvardegar007Saghafian mongo
