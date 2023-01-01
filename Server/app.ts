@@ -57,6 +57,7 @@ interface IPost{
      channel: string
      report: number
      attachment?: IAttachment
+     subscribers: [string]
 }
 
 const postSchema = new Schema<IPost>({
@@ -71,7 +72,8 @@ const postSchema = new Schema<IPost>({
   numOfViews: {type: Number, required: true},
   channel: {type: String, required: true},
   report: {type: Number, required: true},
-  attachment: {type: attachmentSchema, required: false}
+  attachment: {type: attachmentSchema, required: false},
+  subscribers: {type: [String], required: false}
 })
 
 
@@ -120,7 +122,8 @@ app.post('/post', async (req, res) => {
      numOfViews: req.body.numOfViews,
      channel: req.body.channel,
      report: req.body.report,
-     attachment: {id: req.body.attachment.id}
+     attachment: {id: req.body.attachment.id},
+     subscribers: []
   })
   if(req.body.attachment.id !== ""){
     await Attachment.create({
@@ -141,7 +144,8 @@ app.post('/post', async (req, res) => {
     numOfViews: req.body.numOfViews,
     channel: req.body.channel,
     report: req.body.report,
-    attachment: null
+    attachment: null,
+    subscribers: []
  })
  
 }
@@ -203,15 +207,15 @@ app.get("/post/load", async (req, res) => {
   let channel = req.query["channel"] as string
   if(channel === ""){
     if(feed === 0){
-      res.json(await Post.find({}).sort({votes: -1}).limit(50 * load))
+      res.json(await Post.find({}, {subscribers: 0}).sort({votes: -1}).limit(50 * load))
     } else {
-      res.json(await Post.find({}).sort({date: -1}).limit(50 * load))
+      res.json(await Post.find({}, {subscribers: 0}).sort({date: -1}).limit(50 * load))
     }
   }else{
     if(feed === 0){
-      res.json(await Post.find({'channel': channel}).sort({votes: -1}).limit(50 * load))
+      res.json(await Post.find({'channel': channel}, {subscribers: 0}).sort({votes: -1}).limit(50 * load))
     } else {
-      res.json(await Post.find({'channel': channel}).sort({date: -1}).limit(50 * load))
+      res.json(await Post.find({'channel': channel}, {subscribers: 0}).sort({date: -1}).limit(50 * load))
     }
   }
 })
@@ -232,7 +236,7 @@ app.get("/post/reply", async (req, res) => {
   let id = req.query["id"] as string
 
   await Post.findOneAndUpdate({"id": id}, {$inc: {numOfViews: 1}})
-  res.json(await Reply.find({'postID': id}))
+  res.json(await Reply.find({'postID': id}, {subscribers: 0}))
 })
 
 app.post("/post/reply", async (req, res) => {
@@ -247,7 +251,27 @@ app.post("/post/reply", async (req, res) => {
   })
   await newReply.save()
   await Post.findOneAndUpdate({"id": req.body.postID}, {$inc: {numOfReplies: 1}})
-  res.send("New Reply")
+  
+  var note = new apn.Notification();
+  //console.log(req.body)
+  let listofUserID = await Post.findOne({"id": req.body.postID}, {subscribers: 1, _id:0})
+  console.log(listofUserID)
+  
+  let listOfTokens = await userData.find({"userID": {$in: listofUserID}});
+  note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+  note.badge = 1;
+  note.sound = "ping.aiff";
+  note.alert = {body: "New message to your saved post!"}
+  // This payload is wehre the magic happens -> Navigating through the app
+  note.payload = {'messageFrom': 'John Appleseed', "Screen": 1};
+  note.topic = "com.saghaf.campux";
+  //console.log(listOfTokens.length)
+  listOfTokens.forEach(obj => {
+      apnProvider.send(note, obj.deviceToken).then( (result) => {
+        // I have to remove the dead tokens here
+      });
+  })
+  res.send("Notification sent")
 })
 
 app.get("/post/reply/update", async (req, res) => {
@@ -280,11 +304,23 @@ app.get("/Delete", async (req, res) => {
 
 //The iamge end point
 app.get("/post/attachment", async (req, res) => {
-  console.log("fuck")
   let id = req.query["id"] as string
-  
   const foundAtt = await Attachment.findOne({ id: id }).exec()
   res.send(foundAtt)
+})
+
+app.get("/post/subscribe", async (req, res) => {
+  let userID = req.query["userID"] as string
+  let id = req.query["id"] as string
+  await Post.updateOne({id: id}, { $push: { subscribers: [userID] } })
+  res.send("You subscribed")
+})
+
+app.get("/post/unsubscribe", async (req, res) =>{
+  let userID = req.query["userID"] as string
+  let id = req.query["id"] as string
+  await Post.updateOne({id: id}, {$pull: {subscribers: [userID]}})
+  res.send("You unsubscribe")
 })
 
 // The strings are tricky, I will get back to it
@@ -366,12 +402,22 @@ app.get("/sendnotifi", async (req, res) => {
   //console.log(listOfTokens.length)
   listOfTokens.forEach(obj => {
       apnProvider.send(note, obj.deviceToken).then( (result) => {
-          // see documentation for an explanation of result
-          console.log(result)
+        // I have to remove the dead tokens here
       });
   })
   res.send("Notification sent")
 
+})
+
+app.get(("/test"), async (req, res) => {
+  console.log(req.body)
+  console.log("Test worked")
+  res.send("Fuck")
+})
+app.get(("/tes"), async (req, res) => {
+  console.log(req.body)
+  console.log("Tes ")
+  res.send("Fuck")
 })
 
 // Keep this simple for now, this is a rabit hole, we have a websocket to implement, Ask Ali about notification about saved Posts
