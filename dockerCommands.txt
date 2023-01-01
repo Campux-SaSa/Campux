@@ -34,3 +34,9 @@ docker run --name dada1 -d -v ~/data/db -p 27017:27017  mongo
 
 // The used command for our mongodb
 docker run --name dbmongo -d --restart unless-stopped -v ~/data/db -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=AzureDiamond -e MONGO_INITDB_ROOT_PASSWORD=Parvardegar007Saghafian mongo
+
+source: https://github.com/gwuhaolin/livego
+// Getting the key
+http://localhost:8090/control/get?room=movie
+// The command used for the live stream 
+docker run -p 1935:1935 -p 7001:7001 -p 7002:7002 -p 8090:8090 -d gwuhaolin/livego

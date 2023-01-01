@@ -47,7 +47,8 @@ const postSchema = new mongoose_1.Schema({
     numOfViews: { type: Number, required: true },
     channel: { type: String, required: true },
     report: { type: Number, required: true },
-    attachment: { type: attachmentSchema, required: false }
+    attachment: { type: attachmentSchema, required: false },
+    subscribers: { type: [String], required: false }
 });
 // 2. Create a Schema corresponding to the document interface.
 const userSchema = new mongoose_1.Schema({
@@ -91,7 +92,8 @@ app.post('/post', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             numOfViews: req.body.numOfViews,
             channel: req.body.channel,
             report: req.body.report,
-            attachment: { id: req.body.attachment.id }
+            attachment: { id: req.body.attachment.id },
+            subscribers: []
         });
         if (req.body.attachment.id !== "") {
             yield Attachment.create({
@@ -113,7 +115,8 @@ app.post('/post', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             numOfViews: req.body.numOfViews,
             channel: req.body.channel,
             report: req.body.report,
-            attachment: null
+            attachment: null,
+            subscribers: []
         });
     }
     //await newPost.save();
@@ -163,18 +166,18 @@ app.get("/post/load", (req, res) => __awaiter(void 0, void 0, void 0, function* 
     let channel = req.query["channel"];
     if (channel === "") {
         if (feed === 0) {
-            res.json(yield Post.find({}).sort({ votes: -1 }).limit(50 * load));
+            res.json(yield Post.find({}, { subscribers: 0 }).sort({ votes: -1 }).limit(50 * load));
         }
         else {
-            res.json(yield Post.find({}).sort({ date: -1 }).limit(50 * load));
+            res.json(yield Post.find({}, { subscribers: 0 }).sort({ date: -1 }).limit(50 * load));
         }
     }
     else {
         if (feed === 0) {
-            res.json(yield Post.find({ 'channel': channel }).sort({ votes: -1 }).limit(50 * load));
+            res.json(yield Post.find({ 'channel': channel }, { subscribers: 0 }).sort({ votes: -1 }).limit(50 * load));
         }
         else {
-            res.json(yield Post.find({ 'channel': channel }).sort({ date: -1 }).limit(50 * load));
+            res.json(yield Post.find({ 'channel': channel }, { subscribers: 0 }).sort({ date: -1 }).limit(50 * load));
         }
     }
 }));
@@ -191,7 +194,7 @@ app.get("/post/reply/down", (req, res) => __awaiter(void 0, void 0, void 0, func
 app.get("/post/reply", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     let id = req.query["id"];
     yield Post.findOneAndUpdate({ "id": id }, { $inc: { numOfViews: 1 } });
-    res.json(yield Reply.find({ 'postID': id }));
+    res.json(yield Reply.find({ 'postID': id }, { subscribers: 0 }));
 }));
 app.post("/post/reply", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const newReply = new Reply({
@@ -205,7 +208,25 @@ app.post("/post/reply", (req, res) => __awaiter(void 0, void 0, void 0, function
     });
     yield newReply.save();
     yield Post.findOneAndUpdate({ "id": req.body.postID }, { $inc: { numOfReplies: 1 } });
-    res.send("New Reply");
+    var note = new node_apn_1.default.Notification();
+    //console.log(req.body)
+    let listofUserID = yield Post.findOne({ "id": req.body.postID }, { subscribers: 1, _id: 0 });
+    console.log(listofUserID);
+    let listOfTokens = yield userData.find({ "userID": { $in: listofUserID } });
+    note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+    note.badge = 1;
+    note.sound = "ping.aiff";
+    note.alert = { body: "New message to your saved post!" };
+    // This payload is wehre the magic happens -> Navigating through the app
+    note.payload = { 'messageFrom': 'John Appleseed', "Screen": 1 };
+    note.topic = "com.saghaf.campux";
+    //console.log(listOfTokens.length)
+    listOfTokens.forEach(obj => {
+        apnProvider.send(note, obj.deviceToken).then((result) => {
+            // I have to remove the dead tokens here
+        });
+    });
+    res.send("Notification sent");
 }));
 app.get("/post/reply/update", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     let id = req.query["id"];
@@ -233,10 +254,21 @@ app.get("/Delete", (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 }));
 //The iamge end point
 app.get("/post/attachment", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("fuck");
     let id = req.query["id"];
     const foundAtt = yield Attachment.findOne({ id: id }).exec();
     res.send(foundAtt);
+}));
+app.get("/post/subscribe", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    let userID = req.query["userID"];
+    let id = req.query["id"];
+    yield Post.updateOne({ id: id }, { $push: { subscribers: [userID] } });
+    res.send("You subscribed");
+}));
+app.get("/post/unsubscribe", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    let userID = req.query["userID"];
+    let id = req.query["id"];
+    yield Post.updateOne({ id: id }, { $pull: { subscribers: [userID] } });
+    res.send("You unsubscribe");
 }));
 // The strings are tricky, I will get back to it
 /*
@@ -305,11 +337,20 @@ app.get("/sendnotifi", (req, res) => __awaiter(void 0, void 0, void 0, function*
     //console.log(listOfTokens.length)
     listOfTokens.forEach(obj => {
         apnProvider.send(note, obj.deviceToken).then((result) => {
-            // see documentation for an explanation of result
-            console.log(result);
+            // I have to remove the dead tokens here
         });
     });
     res.send("Notification sent");
+}));
+app.get(("/test"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(req.body);
+    console.log("Test worked");
+    res.send("Fuck");
+}));
+app.get(("/tes"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log(req.body);
+    console.log("Tes ");
+    res.send("Fuck");
 }));
 // Keep this simple for now, this is a rabit hole, we have a websocket to implement, Ask Ali about notification about saved Posts
 // Modifying Content in Newly Delivered Notifications, Basically figure out Notification Responses
