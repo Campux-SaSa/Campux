@@ -232,48 +232,50 @@ var options = {
 var apnProvider = new node_apn_1.default.Provider(options);
 // This needs to becoming from a database of tokens defnitely
 let deviceToken = "A1F061D4E37FF96C5F6EA87EF08980370A358C5DC6AAE165269D89418F8D4567";
-const UserData = new mongoose_1.Schema({
-    userID: { type: String },
-    deviceToken: { type: String }
-});
-const userData = (0, mongoose_1.model)('UserData', UserData);
+// const UserData = new mongoose_1.Schema({
+//     userID: { type: String },
+//     deviceToken: { type: String }
+// });
+// const userData = (0, mongoose_1.model)('UserData', UserData);
 // We probably need to figure out some JWT security later here
 // The userData model is good for chat and other stuff probably 
-app.post("/user", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const foundUser = yield userData.findOne({ deviceToken: req.body.deviceToken }).exec();
-    const newUserData = new userData({
-        userID: req.body.userID,
-        deviceToken: req.body.deviceToken
-    });
-    if (foundUser !== null) {
-        res.send("UserData existed");
-    }
-    else {
-        yield newUserData.save();
-        res.send("New UserData");
-    }
-}));
+// app.post("/user", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+//     const foundUser = yield userData.findOne({ deviceToken: req.body.deviceToken }).exec();
+//     const newUserData = new userData({
+//         userID: req.body.userID,
+//         deviceToken: req.body.deviceToken
+//     });
+//     if (foundUser !== null) {
+//         res.send("UserData existed");
+//     }
+//     else {
+//         yield newUserData.save();
+//         res.send("New UserData");
+//     }
+// }));
 // Send notification to users with the tokens that was stored in the database
-app.get("/sendnotifi", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var note = new node_apn_1.default.Notification();
-    console.log(req.body);
-    const listOfTokens = yield userData.find({});
-    note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
-    note.badge = 1;
-    note.sound = "ping.aiff";
-    note.alert = req.body;
-    // This payload is wehre the magic happens -> Navigating through the app
-    note.payload = { 'messageFrom': 'John Appleseed', "Screen": 1 };
-    note.topic = "com.saghaf.campux";
-    console.log(listOfTokens.length);
-    listOfTokens.forEach(obj => {
-        apnProvider.send(note, obj.deviceToken).then((result) => {
-            // see documentation for an explanation of result
-            console.log(result);
-        });
-    });
-    res.send("Notification sent");
-}));
+// app.get("/sendnotifi", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+//     var note = new node_apn_1.default.Notification();
+//     console.log(req.body);
+//     const listOfTokens = yield userData.find({});
+//     note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+//     note.badge = 1;
+//     note.sound = "ping.aiff";
+//     note.alert = req.body;
+//     // This payload is wehre the magic happens -> Navigating through the app
+//     note.payload = { 'messageFrom': 'John Appleseed', "Screen": 1 };
+//     note.topic = "com.saghaf.campux";
+//     console.log(listOfTokens.length);
+//     listOfTokens.forEach(obj => {
+//         apnProvider.send(note, obj.deviceToken).then((result) => {
+//             // see documentation for an explanation of result
+//             console.log(result);
+//         });
+//     });
+//     res.send("Notification sent");
+// }));
+app.use("/", require(""))
+
 // Keep this simple for now, this is a rabit hole, we have a websocket to implement, Ask Ali about notification about saved Posts
 // Modifying Content in Newly Delivered Notifications, Basically figure out Notification Responses
 // https://developer.apple.com/documentation/usernotifications/modifying_content_in_newly_delivered_notifications
