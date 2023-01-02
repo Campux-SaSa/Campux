@@ -30,13 +30,9 @@ jobs:
           script: |
             cd /home/sure/Campux 
             /usr/bin/git pull origin main 
-            forever stopall 
-            cd Server
-            npm run start
-            kill -9 `lsof -t -i:8080` 
-            cd ..
-            forever start ./Server/dist/app.js
-            forever start ./WebSocket/server.js
+            pm2 kill
+            pm2 start ./Server/dist/app.js
+            pm2 start ./WebSocket/server.js
             
              
 
