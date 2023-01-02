@@ -32,10 +32,9 @@ jobs:
             /usr/bin/git pull origin main 
             pm2 kill
             cd Server
-            npm run build
+            ./node_modules/.bin/pm2 start app.ts --watch;
             cd ..
-            pm2 --name node start Server/dist/app.js --interpreter=/home/sure/.nvm/versions/node/v18.12.1/bin/node 
-            pm2 --name ws start WebSocket/server.js --interpreter=/home/sure/.nvm/versions/node/v18.12.1/bin/node  
+            pm2 --name ws start WebSocket/server.js;
             
              
 
