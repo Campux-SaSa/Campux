@@ -359,8 +359,6 @@ var apnProvider = new apn.Provider(options);
 // This needs to becoming from a database of tokens defnitely
 let deviceToken = "A1F061D4E37FF96C5F6EA87EF08980370A358C5DC6AAE165269D89418F8D4567"
 
-
-
 const UserData = new Schema({
   userID: {type: String},
   deviceToken: {type: String}
@@ -425,8 +423,48 @@ app.get(("/tes"), async (req, res) => {
 // Modifying Content in Newly Delivered Notifications, Basically figure out Notification Responses
 // https://developer.apple.com/documentation/usernotifications/modifying_content_in_newly_delivered_notifications
 
+// For this you need to consider the military time and also the offset from UTC
+function runAtSpecificTimeOfDay(hour, minutes, func)
+{
+  const twentyFourHours = 86400000;
+  //var timeZoneFromDB = -7.00; //time zone value from database
+  //get the timezone offset from local time in minutes
+  
+  // var tzDifference = timeZoneFromDB * 60 + now.getTimezoneOffset();
+  // //convert the offset to milliseconds, add to targetTime, and make a new Date
+  // var offsetTime = new Date(targetTime.getTime() + tzDifference * 60 * 1000);
+  const now = new Date();
+  let eta_ms :number  = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minutes, 0, 0).getTime() - now.getTime();
+  if (eta_ms < 0)
+  {
+    eta_ms += twentyFourHours;
+  }
+  setTimeout(function() {
+    //run once
+    func();
+    // run every 24 hours from now on
+    setInterval(func, twentyFourHours);
+  }, eta_ms);
+}
 
-
+// Runs at 8:00 military time 
+runAtSpecificTimeOfDay(16, 0, async () => {
+  var note = new apn.Notification();
+  const listOfTokens = await userData.find({});
+  note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
+  note.badge = 1;
+  note.sound = "ping.aiff";
+  note.alert = {body: "Get some streteches at 8 during the live!", title: "Morning excercise"}
+  // This payload is wehre the magic happens -> Navigating through the app
+  note.payload = {'messageFrom': 'John Appleseed', "Screen": 1};
+  note.topic = "com.saghaf.campux";
+  //console.log(listOfTokens.length)
+  listOfTokens.forEach(obj => {
+      apnProvider.send(note, obj.deviceToken).then( (result) => {
+        // I have to remove the dead tokens here
+      });
+  })
+})
 
 app.listen(port, () => {
   run().catch(err => console.log(err));
