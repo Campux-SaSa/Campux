@@ -30,11 +30,7 @@ jobs:
           script: |
             cd /home/sure/Campux 
             /usr/bin/git pull origin main 
-            pm2 kill
-            cd Server
-            ./node_modules/.bin/pm2 --name node start app.ts
-            cd ..
-            pm2 --name ws start WebSocket/server.js
+            bash run.sh
             
              
 
