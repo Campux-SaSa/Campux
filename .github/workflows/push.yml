@@ -28,5 +28,10 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            cd /home/sure/Campux
-            /usr/bin/git pull origin main     
+            cd /home/sure/Campux 
+            /usr/bin/git pull origin main  
+            forever stopall 
+            forever start ./Server/dist/app.js
+            forever start ./WebSocket/server.js
+             
+

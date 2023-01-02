@@ -39,4 +39,7 @@ source: https://github.com/gwuhaolin/livego
 // Getting the key
 http://localhost:8090/control/get?room=movie
 // The command used for the live stream 
-docker run -p 1935:1935 -p 7001:7001 -p 7002:7002 -p 8090:8090 -d gwuhaolin/livego
+docker run --restart unless-stopped -p 1935:1935 -p 7001:7001 -p 7002:7002 -p 8090:8090 -d gwuhaolin/livego
+
+
+docker run --name redis -d --restart unless-stopped  -v $PWD/data:/data -p 4000:6379 redis redis-server --requirepass "Parvardegar007Salamatian"
