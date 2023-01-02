@@ -30,8 +30,7 @@ jobs:
           script: |
             cd /home/sure/Campux 
             /usr/bin/git pull origin main  
-            forever stopall 
-            node ./WebSocket/server.js
-            node ./Server/dist/app.js
+            forever ./WebSocket/server.js
+            forever ./Server/dist/app.js
              
 
