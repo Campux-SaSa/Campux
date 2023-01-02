@@ -108,8 +108,8 @@ app.get('/post', async (req, res) => {
 
 app.post('/post', async (req, res) => {
   const attachment = (req.body.attachment as Buffer)
-  console.log(req.body.attachment?.id)
-  if(req.body.attachment !== null){
+  console.log(req.body)
+  if(req.body.attachment !== undefined ){
   await Post.create({
      id: req.body.id,
      title: req.body.title,
@@ -254,14 +254,14 @@ app.post("/post/reply", async (req, res) => {
   
   var note = new apn.Notification();
   //console.log(req.body)
-  let listofUserID = await Post.findOne({"id": req.body.postID}, {subscribers: 1, _id:0})
-  console.log(listofUserID)
+  let post = await Post.findOne({"id": req.body.postID}, {title:1 ,subscribers: 1, _id:0})
+  console.log(post)
   
-  let listOfTokens = await userData.find({"userID": {$in: listofUserID}});
+  let listOfTokens = await userData.find({"userID": {$in: post.subscribers}});
   note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
   note.badge = 1;
   note.sound = "ping.aiff";
-  note.alert = {body: "New message to your saved post!"}
+  note.alert = {title: post.title, body: newReply.body}
   // This payload is wehre the magic happens -> Navigating through the app
   note.payload = {'messageFrom': 'John Appleseed', "Screen": 1};
   note.topic = "com.saghaf.campux";
@@ -313,6 +313,7 @@ app.get("/post/subscribe", async (req, res) => {
   let userID = req.query["userID"] as string
   let id = req.query["id"] as string
   await Post.updateOne({id: id}, { $push: { subscribers: [userID] } })
+  console.log("Subscribing")
   res.send("You subscribed")
 })
 

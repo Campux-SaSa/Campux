@@ -76,10 +76,9 @@ app.get('/post', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 }));
 //Todo: Saving the req body as a Post to the database
 app.post('/post', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
     const attachment = req.body.attachment;
-    console.log((_a = req.body.attachment) === null || _a === void 0 ? void 0 : _a.id);
-    if (req.body.attachment !== null) {
+    console.log(req.body);
+    if (req.body.attachment !== undefined) {
         yield Post.create({
             id: req.body.id,
             title: req.body.title,
@@ -210,13 +209,13 @@ app.post("/post/reply", (req, res) => __awaiter(void 0, void 0, void 0, function
     yield Post.findOneAndUpdate({ "id": req.body.postID }, { $inc: { numOfReplies: 1 } });
     var note = new node_apn_1.default.Notification();
     //console.log(req.body)
-    let listofUserID = yield Post.findOne({ "id": req.body.postID }, { subscribers: 1, _id: 0 });
-    console.log(listofUserID);
-    let listOfTokens = yield userData.find({ "userID": { $in: listofUserID } });
+    let post = yield Post.findOne({ "id": req.body.postID }, { title: 1, subscribers: 1, _id: 0 });
+    console.log(post);
+    let listOfTokens = yield userData.find({ "userID": { $in: post.subscribers } });
     note.expiry = Math.floor(Date.now() / 1000) + 3600; // Expires 1 hour from now.
     note.badge = 1;
     note.sound = "ping.aiff";
-    note.alert = { body: "New message to your saved post!" };
+    note.alert = { title: post.title, body: newReply.body };
     // This payload is wehre the magic happens -> Navigating through the app
     note.payload = { 'messageFrom': 'John Appleseed', "Screen": 1 };
     note.topic = "com.saghaf.campux";
@@ -262,6 +261,7 @@ app.get("/post/subscribe", (req, res) => __awaiter(void 0, void 0, void 0, funct
     let userID = req.query["userID"];
     let id = req.query["id"];
     yield Post.updateOne({ id: id }, { $push: { subscribers: [userID] } });
+    console.log("Subscribing");
     res.send("You subscribed");
 }));
 app.get("/post/unsubscribe", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
