@@ -31,7 +31,11 @@ jobs:
             cd /home/sure/Campux 
             /usr/bin/git pull origin main 
             forever stopall 
-            forever start ./WebSocket/server.js
+            cd Server
+            npm start
+            kill -9 `lsof -t -i:8080` 
             forever start ./Server/dist/app.js
+            forever start ./WebSocket/server.js
+            
              
 
