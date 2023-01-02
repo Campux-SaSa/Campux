@@ -413,12 +413,12 @@ app.get("/sendnotifi", async (req, res) => {
 app.get(("/test"), async (req, res) => {
   console.log(req.body)
   console.log("Test worked")
-  res.send("Fuck")
+  res.send("Love You")
 })
 app.get(("/tes"), async (req, res) => {
   console.log(req.body)
   console.log("Tes ")
-  res.send("Fuck")
+  res.send("Love You")
 })
 
 // Keep this simple for now, this is a rabit hole, we have a websocket to implement, Ask Ali about notification about saved Posts
