@@ -1,3 +1,4 @@
 # Dependency directories
 **/node_modules/
 Script/*.mp4
+**/dist/
