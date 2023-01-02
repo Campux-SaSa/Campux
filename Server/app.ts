@@ -422,7 +422,7 @@ app.get(("/test"), async (req, res) => {
 app.get(("/tes"), async (req, res) => {
   console.log(req.body)
   console.log("Tes ")
-  res.send("I love CI")
+  res.send("I love CI, only when it works")
 })
 
 // Keep this simple for now, this is a rabit hole, we have a websocket to implement, Ask Ali about notification about saved Posts
