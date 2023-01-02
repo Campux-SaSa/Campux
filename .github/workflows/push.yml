@@ -31,8 +31,10 @@ jobs:
             cd /home/sure/Campux 
             /usr/bin/git pull origin main 
             pm2 kill
-            pm2 start ./Server/dist/app.js
-            pm2 start ./WebSocket/server.js
+            cd Server
+            pm2 start npm -- start
+            cd ../WebSocket
+            pm2 start npm -- start
             
              
 
