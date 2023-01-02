@@ -23,7 +23,7 @@ const wss2 = new WebSocketServer({ noServer: true });
 wss1.on('connection', function connection(ws) {
   wss1.clients.forEach(function each(client) {
     if (client.readyState === WebSocket.OPEN) {
-        client.send(wss1.clients.size)
+        client.send(wss1.clients.size * 10)
       }
   });
   
