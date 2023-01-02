@@ -32,9 +32,9 @@ jobs:
             /usr/bin/git pull origin main 
             pm2 kill
             cd Server
-            pm2 --name node start /home/sure/.nvm/versions/node/v18.12.1/bin/node npm -- start
+            pm2 --name node start --interpreter=/home/sure/.nvm/versions/node/v18.12.1/bin/node npm -- start
             cd ../WebSocket
-            pm2 --name ws start /home/sure/.nvm/versions/node/v18.12.1/bin/node npm -- start 
+            pm2 --name ws start --interpreter=/home/sure/.nvm/versions/node/v18.12.1/bin/node npm -- start 
             
              
 
