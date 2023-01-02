@@ -417,7 +417,7 @@ app.get("/sendnotifi", async (req, res) => {
 app.get(("/test"), async (req, res) => {
   console.log(req.body)
   console.log("Test worked")
-  res.send("I love")
+  res.send("I love everyone")
 })
 app.get(("/tes"), async (req, res) => {
   console.log(req.body)
