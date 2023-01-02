@@ -30,6 +30,7 @@ jobs:
           script: |
             cd /home/sure/Campux 
             /usr/bin/git pull origin main 
+            bash run.sh
             
             
              

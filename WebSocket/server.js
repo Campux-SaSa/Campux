@@ -32,7 +32,7 @@ wss1.on('connection', function connection(ws) {
         console.log(wss1.clients.size)
         if (client.readyState === WebSocket.OPEN) {
             client.send(data);
-            client.send(wss1.clients.size)
+            // client.send(wss1.clients.size)
           }
       });
   });
