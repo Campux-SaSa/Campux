@@ -209,9 +209,10 @@ app.get('/poll', async (req, res) => {
 
 app.put('/poll', async (req, res) => {
   // we pass in the chosen option and the id of the poll
+  console.log("starting to update the poll")
   let option = Number(req.query["option"]) - 1;
   let id = req.query["id"] as string
-  res.json(await Poll.updateOne({id: id}, {$inc: { "votesArray."option: 1}}))
+  res.json(await Poll.updateOne({id: id}, {$inc: { [`votesArray.${option}`] : 1}}))
 })
 
 // Be careful of the query variables
