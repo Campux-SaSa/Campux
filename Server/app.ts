@@ -69,7 +69,7 @@ interface IPoll {
   numOfOptions: number
   votesArray: number[]
   numOfViews: number
-  numOfvotes: number
+  numOfVotes: number
   channel: string
   report: number
 }
@@ -99,9 +99,9 @@ const pollSchema = new Schema<IPoll>({
   numOfOptions: {type: Number, required: true},
   votesArray: {type: [Number]},
   numOfViews: {type: Number, required: true},
-  numOfvotes: {type: Number, required: true},
+  numOfVotes: {type: Number, required: true},
   channel: {type: String, required: true},
-  report: {type: Number, required: true},
+  report: {type: Number, required: true}
 })
 
 
@@ -183,7 +183,9 @@ app.post('/post', async (req, res) => {
 })
 
 app.post('/poll', async (req, res)=> {
-  const votes = new Array(req.body.numOfOptions);
+  console.log("starting to create the poll")
+  console.log(req.body)
+  const votes = Array.from({length: req.body.numOfOptions}, () => 0);;
   await Poll.create({
     id: req.body.id,
     title: req.body.title,
@@ -193,7 +195,7 @@ app.post('/poll', async (req, res)=> {
     numOfOptions: req.body.numOfOptions,
     votesArray: votes,
     numOfViews: req.body.numOfViews,
-    numOfvotes: req.body.numOfvotes,
+    numOfVotes: req.body.numOfVotes,
     channel: req.body.channel,
     report: req.body.report
   })
@@ -209,7 +211,7 @@ app.put('/poll', async (req, res) => {
   // we pass in the chosen option and the id of the poll
   let option = Number(req.query["option"]) - 1;
   let id = req.query["id"] as string
-  res.json(await Poll.updateOne({id: id}, {$inc: { "votesArray.[option]": 1}}))
+  res.json(await Poll.updateOne({id: id}, {$inc: { "votesArray."option: 1}}))
 })
 
 // Be careful of the query variables
@@ -475,8 +477,8 @@ app.get("/sendnotifi", async (req, res) => {
 
 app.get(("/test"), async (req, res) => {
   console.log(req.body)
-  console.log("Test worked")
-  res.send("I love everyone")
+  console.log("Test worked!!!")
+  res.send("I love everyone!!!!")
 })
 app.get(("/tes"), async (req, res) => {
   console.log(req.body)
