@@ -60,20 +60,6 @@ interface IPost{
      subscribers: [string]
 }
 
-interface IPoll {
-  id: string
-  title: string
-  body?: string
-  date: string
-  authorID: string
-  numOfOptions: number
-  votesArray: number[]
-  numOfViews: number
-  numOfVotes: number
-  channel: string
-  report: number
-}
-
 const postSchema = new Schema<IPost>({
   id: {type: String, required: true},
   title: {type: String, required: true},
@@ -90,6 +76,33 @@ const postSchema = new Schema<IPost>({
   subscribers: {type: [String], required: false}
 })
 
+interface IOption{
+  id: string
+  body: string
+  votes: number
+}
+const optionSchema = new Schema<IOption>({
+  id: {type: String, required: true},
+  body: {type: String, required: true},
+  votes: {type: Number, required: true}
+})
+
+
+
+interface IPoll {
+  id: string
+  title: string
+  body?: string
+  date: string
+  authorID: string
+  numOfOptions: number
+  options: [IOption]
+  numOfViews: number
+  numOfVotes: number
+  channel: string
+  report: number
+}
+
 const pollSchema = new Schema<IPoll>({
   id: {type: String, required: true},
   title: {type: String, required: true},
@@ -97,7 +110,7 @@ const pollSchema = new Schema<IPoll>({
   date: {type: String, required: true},
   authorID: {type: String, required: true},
   numOfOptions: {type: Number, required: true},
-  votesArray: {type: [Number]},
+  options: {type: [optionSchema], required: true},
   numOfViews: {type: Number, required: true},
   numOfVotes: {type: Number, required: true},
   channel: {type: String, required: true},
@@ -112,7 +125,7 @@ const userSchema = new Schema<IUser>({
   avatar: String
 });
 
-// 3. Create a Model.
+
 
 const Post = model<IPost>('Post', postSchema);
 const Reply = model<IReply>('Reply', replySchema);

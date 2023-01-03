@@ -8,5 +8,5 @@ npm run build
 pm2 save --force
 pm2 list;
 cd ..;
-pm2 start --name ws watch WebSocket/server.js;
+pm2 start --name ws WebSocket/server.js --watch;
 pm2 list;

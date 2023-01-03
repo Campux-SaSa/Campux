@@ -1,7 +1,21 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { createServer } from 'http';
 import { parse } from 'url';
+import { Schema, model, connect } from 'mongoose';
 
+
+const  Comment = mongoose.model('Comment', { 
+  id: String,
+  body: String,
+  date: String,
+  authorID: String,
+});
+
+
+async function run() {
+  // 4. Connect to MongoDB
+  await connect("mongodb://AzureDiamond:Parvardegar007Saghafian@localhost:27017/db?authSource=admin");
+}
 
 function heartbeat() {
   clearTimeout(this.pingTimeout);
@@ -23,7 +37,7 @@ const wss2 = new WebSocketServer({ noServer: true });
 wss1.on('connection', function connection(ws) {
   wss1.clients.forEach(function each(client) {
     if (client.readyState === WebSocket.OPEN) {
-        client.send(wss1.clients.size)
+        client.send(wss1.clients.size * 1)
       }
   });
   
@@ -72,4 +86,5 @@ server.on('upgrade', function upgrade(request, socket, head) {
   }
 });
 
+run().catch(err => console.log(err));
 server.listen(8080);
