@@ -60,6 +60,20 @@ interface IPost{
      subscribers: [string]
 }
 
+interface IPoll {
+  id: string
+  title: string
+  body?: string
+  date: string
+  authorID: string
+  numOfOptions: number
+  votesArray: number[]
+  numOfViews: number
+  numOfVotes: number
+  channel: string
+  report: number
+}
+
 const postSchema = new Schema<IPost>({
   id: {type: String, required: true},
   title: {type: String, required: true},
@@ -76,6 +90,20 @@ const postSchema = new Schema<IPost>({
   subscribers: {type: [String], required: false}
 })
 
+const pollSchema = new Schema<IPoll>({
+  id: {type: String, required: true},
+  title: {type: String, required: true},
+  body: {type: String},
+  date: {type: String, required: true},
+  authorID: {type: String, required: true},
+  numOfOptions: {type: Number, required: true},
+  votesArray: {type: [Number]},
+  numOfViews: {type: Number, required: true},
+  numOfVotes: {type: Number, required: true},
+  channel: {type: String, required: true},
+  report: {type: Number, required: true}
+})
+
 
 // 2. Create a Schema corresponding to the document interface.
 const userSchema = new Schema<IUser>({
@@ -89,6 +117,7 @@ const userSchema = new Schema<IUser>({
 const Post = model<IPost>('Post', postSchema);
 const Reply = model<IReply>('Reply', replySchema);
 const Attachment = model<IAttachment>('Attachment', attachmentSchema)
+const Poll = model<IPoll>('Poll', pollSchema)
 
 async function run() {
   // 4. Connect to MongoDB
@@ -151,6 +180,39 @@ app.post('/post', async (req, res) => {
 }
   //await newPost.save();
   res.send("Created")
+})
+
+app.post('/poll', async (req, res)=> {
+  console.log("starting to create the poll")
+  console.log(req.body)
+  const votes = Array.from({length: req.body.numOfOptions}, () => 0);;
+  await Poll.create({
+    id: req.body.id,
+    title: req.body.title,
+    body: req.body.body,
+    date: req.body.date,
+    authorID: req.body.authorID,
+    numOfOptions: req.body.numOfOptions,
+    votesArray: votes,
+    numOfViews: req.body.numOfViews,
+    numOfVotes: req.body.numOfVotes,
+    channel: req.body.channel,
+    report: req.body.report
+  })
+  console.log("poll was created!")
+  res.send(req.body)
+})
+
+app.get('/poll', async (req, res) => {
+  res.json(await Poll.find({}).sort({ date: -1 }).limit(50))
+})
+
+app.put('/poll', async (req, res) => {
+  // we pass in the chosen option and the id of the poll
+  console.log("starting to update the poll")
+  let option = Number(req.query["option"]) - 1;
+  let id = req.query["id"] as string
+  res.json(await Poll.updateOne({id: id}, {$inc: { [`votesArray.${option}`] : 1}}))
 })
 
 // Be careful of the query variables
@@ -416,8 +478,8 @@ app.get("/sendnotifi", async (req, res) => {
 
 app.get(("/test"), async (req, res) => {
   console.log(req.body)
-  console.log("Test worked")
-  res.send("I love everyone")
+  console.log("Test worked!!!")
+  res.send("I love everyone!!!!")
 })
 app.get(("/tes"), async (req, res) => {
   console.log(req.body)
