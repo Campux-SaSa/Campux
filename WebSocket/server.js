@@ -4,13 +4,12 @@ import { parse } from 'url';
 import { Schema, model, connect } from 'mongoose';
 
 
-const  Comment = mongoose.model('Comment', { 
-  id: String,
-  body: String,
-  date: String,
-  authorID: String,
+const  Comment = model('Comment', { 
+  id: {type: String, required: true},
+  body: {type: String, required: true},
+  date: {type: String, required: true},
+  authorID: {type: String, required: true}
 });
-
 
 async function run() {
   // 4. Connect to MongoDB
@@ -34,7 +33,11 @@ const server = createServer();
 const wss1 = new WebSocketServer({ noServer: true });
 const wss2 = new WebSocketServer({ noServer: true });
 
-wss1.on('connection', function connection(ws) {
+wss1.on('connection', async function connection(ws) {
+  
+  const obj = await Comment.find({}).sort({date : -1}).limit(50)
+  ws.send(Buffer.from(JSON.stringify(obj)))
+
   wss1.clients.forEach(function each(client) {
     if (client.readyState === WebSocket.OPEN) {
         client.send(wss1.clients.size * 1)
@@ -42,19 +45,31 @@ wss1.on('connection', function connection(ws) {
   });
   
   ws.on('message', function message(data) {
-    wss1.clients.forEach(function each(client) {
-        console.log(wss1.clients.size)
+    console.log(data)
+    let json = JSON.parse(data.toString());
+    console.log(json)
+    wss1.clients.forEach(async function each(client) {
+
+        const comment = new Comment({
+          id: json.id,
+          body: json.body,
+          date: json.date,
+          authorID: json.authorID
+         });
+         await comment.save()
         if (client.readyState === WebSocket.OPEN) {
-            client.send(data);
+            let newComment = {id: json.id, body: json.body, date: json.date, authorID: json.authorID}
+            client.send(Buffer.from(JSON.stringify(newComment)));
             // client.send(wss1.clients.size)
           }
       });
   });
-  ws.on('ping', heartbeat)
-  ws.on('open', function Beep(){
-    ws.send("You opened a websocket")
-  });
-  ws.on('ping', heartbeat);
+  // ws.on('ping', heartbeat)
+  ws.on("open", ()=>{
+    console.log("is open")
+    
+  })
+  // ws.on('ping', heartbeat);
   ws.on('close', function clear() {
     console.log(wss1.clients.size)
     wss1.clients.forEach(function each(client) {
