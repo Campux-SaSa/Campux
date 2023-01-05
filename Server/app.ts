@@ -10,6 +10,11 @@ const port = 8000;
 import { Schema, model, connect } from 'mongoose';
 import apn from '@parse/node-apn'
 // 1. Create an interface representing a document in MongoDB.
+
+const POLL = "poll";
+const POST = "post";
+const REPLY = "reply"
+
 interface IUser {
   name: string;
   email: string;
@@ -20,7 +25,8 @@ interface IReply{
   id: string
   postID: string
   body: string
-  votes: number
+  netVotes: number
+  numOfViews
   date: string
   report: number
   authorID: string
@@ -30,7 +36,8 @@ const replySchema = new Schema<IReply>({
   id: {type: String, required: true},
   postID: {type: String, required: true},
   body: {type: String, rquired: true},
-  votes: {type: Number, required: true},
+  numOfViews: {type: Number, required: true},
+  netVotes: {type: Number, required: true},
   date: {type: String, required: true},
   report: {type: Number, required: true},
   authorID: {type: String, required: true}
@@ -45,21 +52,22 @@ const attachmentSchema = new Schema<IAttachment>({
 })
 
 interface IPost{
-     id: string
-     title: string
-     body?: string
-     campus: string
-     date: string
-     votes: number
-     numOfVotes: Number
-     authorID: string
-     numOfReplies: number
-     numOfViews: number
-     options: [IOption]
-     channel: string
-     report: number
-     attachment?: IAttachment
-     subscribers: [string]
+  id: string
+  title: string
+  body?: string
+  campus: string
+  date: string
+  netVotes: number
+  numOfPollVotes: Number
+  authorID: string
+  replies: [IReply]
+  numOfViews: number
+  options: [IOption]
+  type: string
+  channel: string
+  report: number
+  attachment?: IAttachment
+  subscribers: [string]
 }
 
 interface IOption{
@@ -79,12 +87,13 @@ const postSchema = new Schema<IPost>({
   body: {type: String},
   campus: {type: String, required: true},
   date: {type: String, required: true},
-  votes: {type: Number, required: false},
-  numOfVotes: {type: Number, required: false},
+  netVotes: {type: Number, required: false},
+  numOfPollVotes: {type: Number, required: false},
   authorID: {type: String, required: true},
-  numOfReplies: {type: Number, required: true},
+  replies: {type: [replySchema], required: false},
   numOfViews: {type: Number, required: true},
   options: {type: [optionSchema], required: false},
+  type: {type: String, required: true},
   channel: {type: String, required: true},
   report: {type: Number, required: true},
   attachment: {type: attachmentSchema, required: false},
@@ -138,8 +147,10 @@ async function run() {
   await connect("mongodb://AzureDiamond:Parvardegar007Saghafian@localhost:27017/db?authSource=admin");
 }
 
-app.get('/', async (req, res) => {
-  res.send('Hello World!');
+app.get('/health-check', async (req, res) => {
+  // here we have to check all the downstream services
+  // query some fixed thing from database
+  res.send('{status: true}');
 });
 
 //path('post/', views.post_crud),
@@ -149,137 +160,180 @@ app.get('/post', async (req, res) => {
 })
 //Todo: Saving the req body as a Post to the database
 
-app.post('/post', async (req, res) => {
+app.post('', async (req, res) => {
   const attachment = (req.body.attachment as Buffer)
-  console.log(req.body)
-  if(req.body.attachment !== undefined ){
-  await Post.create({
-     id: req.body.id,
-     title: req.body.title,
-     body: req.body.body,
-     campus: req.body.campus,
-     date: req.body.date,
-     votes: req.body.votes,
-     authorID: req.body.authorID,
-     numOfReplies: req.body.numOfReplies,
-     numOfViews: req.body.numOfViews,
-     channel: req.body.channel,
-     report: req.body.report,
-     attachment: {id: req.body.attachment.id},
-     subscribers: []
-  })
-  if(req.body.attachment.id !== ""){
-    await Attachment.create({
-      id: req.body.attachment.id,
-      data: req.body.attachment.data.data
+  const postType = req.body.type;
+  if (postType === POST) {
+    if(req.body.attachment !== undefined ){
+      await Post.create({
+        id: req.body.id,
+        title: req.body.title,
+        body: req.body.body,
+        campus: req.body.campus,
+        date: req.body.date,
+        netVotes: req.body.votes,
+        authorID: req.body.authorID,
+        numOfReplies: req.body.numOfReplies,
+        numOfViews: req.body.numOfViews,
+        channel: req.body.channel,
+        report: req.body.report,
+        attachment: {id: req.body.attachment.id},
+        subscribers: []
+      })
+      if(req.body.attachment.id !== ""){
+        await Attachment.create({
+          id: req.body.attachment.id,
+          data: req.body.attachment.data.data
+        })
+      }
+    }else{
+      await Post.create({
+        id: req.body.id,
+        title: req.body.title,
+        body: req.body.body,
+        campus: req.body.campus,
+        date: req.body.date,
+        netVotes: req.body.votes,
+        authorID: req.body.authorID,
+        numOfReplies: req.body.numOfReplies,
+        numOfViews: req.body.numOfViews,
+        channel: req.body.channel,
+        report: req.body.report,
+        attachment: null,
+        subscribers: []
     })
+    
+    }
+  } else if (postType === POLL) {
+    await Post.create({
+      id: req.body.id,
+      title: req.body.title,
+      body: req.body.body,
+      campus: req.body.campus,
+      date: req.body.date,
+      authorID: req.body.authorID,
+      type: POLL,
+      numOfPollVotes: req.body.numOfVotes,
+      numOfViews: req.body.numOfViews,
+      options: req.body.options,
+      channel: req.body.channel,
+      report: req.body.report,
+    })
+  } else {
+    res.send("You have to provide a correct type")
   }
-}else{
-  await Post.create({
-    id: req.body.id,
-    title: req.body.title,
-    body: req.body.body,
-    campus: req.body.campus,
-    date: req.body.date,
-    votes: req.body.votes,
-    authorID: req.body.authorID,
-    numOfReplies: req.body.numOfReplies,
-    numOfViews: req.body.numOfViews,
-    channel: req.body.channel,
-    report: req.body.report,
-    attachment: null,
-    subscribers: []
- })
- 
-}
-  //await newPost.save();
-  res.send("Created")
-})
-
-app.post('/poll', async (req, res)=> {
-  console.log("starting to create the poll")
-  console.log(req.body)
-  await Poll.create({
-    id: req.body.id,
-    title: req.body.title,
-    body: req.body.body,
-    date: req.body.date,
-    authorID: req.body.authorID,
-    options: req.body.options,
-    numOfViews: req.body.numOfViews,
-    numOfVotes: req.body.numOfVotes,
-    channel: req.body.channel,
-    report: req.body.report
-  })
-  console.log("poll was created!")
   res.send(req.body)
 })
 
-app.get('/poll', async (req, res) => {
-  res.json(await Poll.find({}).sort({ date: -1 }).limit(50))
-})
+// app.post('/poll', async (req, res)=> {
+//   console.log("starting to create the poll")
+//   console.log(req.body)
+//   await Poll.create({
+//     id: req.body.id,
+//     title: req.body.title,
+//     body: req.body.body,
+//     date: req.body.date,
+//     authorID: req.body.authorID,
+//     options: req.body.options,
+//     numOfViews: req.body.numOfViews,
+//     numOfVotes: req.body.numOfVotes,
+//     channel: req.body.channel,
+//     report: req.body.report
+//   })
+//   console.log("poll was created!")
+//   res.send(req.body)
+// })
 
-app.put('/poll', async (req, res) => {
-  // we pass in the chosen option and the id of the poll
-  console.log("starting to update the poll")
-  //let option = Number(req.query["option"]) - 1;
-  let optionId = req.query["optionId"];
-  let pollId = req.query["pollId"] as string
-  res.json(await Poll.updateOne({id: pollId, "options.id": optionId}, {$inc: {"options.$.votes" : 1}})) 
-})
+// app.get('/poll', async (req, res) => {
+//   res.json(await Poll.find({}).sort({ date: -1 }).limit(50))
+// })
 
-// Be careful of the query variables
-app.get('/post/query', async (req, res) =>{
+// app.put('/poll', async (req, res) => {
+//   // we pass in the chosen option and the id of the poll
+//   console.log("starting to update the poll")
+//   //let option = Number(req.query["option"]) - 1;
+//   let optionId = req.query["optionId"];
+//   let pollId = req.query["pollId"] as string
+//   res.json(await Poll.updateOne({id: pollId, "options.id": optionId}, {$inc: {"options.$.votes" : 1}})) 
+// })
+
+// We can call load instead and pass 1 as the load in the query for the first loading
+app.get('/query', async (req, res) =>{
   const feed = parseInt(req.query["feed"] as string)
   let channel = req.query["channel"] as string
-  //console.log(channel)
   if (feed === 0){
     res.json(await Post.find({'channel': channel}).sort({votes: -1}).limit(50))
   }else{
     res.json(await Post.find({'channel': channel}).sort({date: -1}).limit(50))
   }
-  //console.log(await Post.count())
 })
 
-app.get("/post/popular", async (req, res) => {
-  res.json(await Post.find({}).sort({votes: -1}).limit(50))
+app.get("/popular", async (req, res) => {
+  // sorting based on the number of views
+  res.json(await Post.find({}).sort({numOfViews: -1}).limit(50))
 })
 
-app.get("/post/report", async (req, res) => {
-  let id = req.query["id"] as string
-
-  await Post.findOneAndUpdate({"id": id}, {$inc: {report: 1}})
-  res.send("Rported")
+app.put("/report", async (req, res) => {
+  let postId = req.query["id"] as string
+  let replyId = req.query["id"] as string
+  let type = req.query["type"] as string
+  if (type === POST || type === POLL) {
+    await Post.findOneAndUpdate({"id": postId}, {$inc: {report: 1}})
+  } else if (type === REPLY) {
+    await Reply.findOneAndUpdate({"id": postId, "replies.id": replyId}, {$inc: {"replies.$.report": 1}})
+  } else {
+    res.send("Incorrect type passed!")
+  }
+  res.send("Reported")
 })
 
-app.get("/post/reply/report", async (req, res) => {
-  let id = req.query["id"] as string
+// app.put("/reply/report", async (req, res) => {
+//   let id = req.query["id"] as string
 
-  await Reply.findOneAndUpdate({"id": id}, {$inc: {report: 1}})
-  res.send("Rported")
+//   await Reply.findOneAndUpdate({"id": id}, {$inc: {report: 1}})
+//   res.send("Reported")
+// })
+
+app.put("/vote", async (req, res) => {
+  let postId = req.query["id"] as string
+  let replyId = req.query["id"] as string
+  let type = req.query["type"] as string
+  
+  if (type === POST) {
+    // vote is either negative one or one indicating up and down voting
+    let vote = Number(req.query["vote"])
+    await Post.findOneAndUpdate({"id": postId}, {$inc: {netVotes: vote}})
+  } else if (type === REPLY) {
+    // vote is either negative one or one 
+    let vote = Number(req.query["vote"])
+    await Reply.findOneAndUpdate(
+      {"id": postId, "replies.id": replyId}, {$inc: {"replies.$.netVotes": vote}}, function(err) {
+        console.log(err)
+      })
+  } else if (type === POLL) {
+    let optionId = req.query["optionId"];
+    let pollId = req.query["pollId"] as string
+    res.json(await Post.updateOne({id: pollId, "options.id": optionId}, {$inc: {"options.$.votes" : 1}}))
+  } else {
+    res.send("Incorrect type!")
+  }
+  res.send("votes")
 })
 
-app.get("/post/up", async (req, res) => {
-  let id = req.query["id"] as string
+// down is no longer needed because we can use vote and pass -1
+// app.put("/down", async (req, res) => {
+//   let id = req.query["id"] as string
 
-  await Post.findOneAndUpdate({"id": id}, {$inc: {votes: 1}})
-  res.send("UpVoted")
-})
+//   await Post.findOneAndUpdate({"id": id}, {$inc: {netVotes: -1}})
+//   res.send("UpVoted")
+// })
 
-app.get("/post/down", async (req, res) => {
-  let id = req.query["id"] as string
-
-  await Post.findOneAndUpdate({"id": id}, {$inc: {votes: -1}})
-  res.send("UpVoted")
-})
-
-app.get("/post/load", async (req, res) => {
+app.get("/load", async (req, res) => {
   
   const feed = parseInt(req.query["feed"] as string)
   const load = parseInt(req.query["load"] as string)
-  //console.log(feed)
-  //console.log(load)
   let channel = req.query["channel"] as string
+
   if(channel === ""){
     if(feed === 0){
       res.json(await Post.find({}, {subscribers: 0}).sort({votes: -1}).limit(50 * load))
@@ -295,26 +349,29 @@ app.get("/post/load", async (req, res) => {
   }
 })
 
-app.get("/post/reply/up", async (req, res) => {
-  let id = req.query["id"] as string
-  await Reply.findOneAndUpdate({"id": id}, {$inc: {votes: 1}})
-  res.send("UpVoted")
-})
 
-app.get("/post/reply/down", async (req, res) => {
-  let id = req.query["id"] as string
-  await Reply.findOneAndUpdate({"id": id}, {$inc: {votes: -1}})
-  res.send("UpVoted")
-})
+// both of the following is captured in the vote
+// app.get("/reply/up", async (req, res) => {
+//   let id = req.query["id"] as string
+//   await Reply.findOneAndUpdate({"id": id}, {$inc: {netVotes: 1}})
+//   res.send("UpVoted")
+// })
 
-app.get("/post/reply", async (req, res) => {
-  let id = req.query["id"] as string
+// app.get("/post/reply/down", async (req, res) => {
+//   let id = req.query["id"] as string
+//   await Reply.findOneAndUpdate({"id": id}, {$inc: {netVotes: -1}})
+//   res.send("UpVoted")
+// })
 
+
+// getting all the replies for a post
+app.get("/replies", async (req, res) => {
+  let id = req.query["id"] as string
   await Post.findOneAndUpdate({"id": id}, {$inc: {numOfViews: 1}})
-  res.json(await Reply.find({'postID': id}, {subscribers: 0}))
+  res.json(await Post.findOne({"id": id}, {replies: 1}))
 })
 
-app.post("/post/reply", async (req, res) => {
+app.post("/reply", async (req, res) => {
   const newReply = new Reply({
     id: req.body.id,
     postID: req.body.postID,
@@ -324,8 +381,11 @@ app.post("/post/reply", async (req, res) => {
     report: req.body.report,
     authorID: req.body.authorID
   })
-  await newReply.save()
+  // await newReply.save()
   await Post.findOneAndUpdate({"id": req.body.postID}, {$inc: {numOfReplies: 1}})
+
+  // pushing the reply to the post array 
+  await Post.updateOne({"id": req.body.postID}, {$push: {replies : newReply}})
   
   var note = new apn.Notification();
   //console.log(req.body)
@@ -353,6 +413,7 @@ app.post("/post/reply", async (req, res) => {
   res.send("Notification sent")
 })
 
+// not sure the use case of this
 app.get("/post/reply/update", async (req, res) => {
   let id = req.query["id"] as string
 
@@ -360,20 +421,21 @@ app.get("/post/reply/update", async (req, res) => {
 })
 
 // This is repetetive but IDK maybe it's been used
-app.post("/post/reply/update", async (req, res) => {
-  const newReply = new Reply({
-    id: req.body.id,
-    postID: req.body.postID,
-    body: req.body.body,
-    votes: req.body.votes,
-    date: req.body.date,
-    report: req.body.report,
-    authorID: req.body.authorID
-  })
-  await newReply.save()
-  await Post.findOneAndUpdate({"id": req.body.postID}, {$inc: {numOfReplies: 1}})
-  res.send("New Reply")
-})
+// seems unnecessary
+// app.post("/post/reply/update", async (req, res) => {
+//   const newReply = new Reply({
+//     id: req.body.id,
+//     postID: req.body.postID,
+//     body: req.body.body,
+//     votes: req.body.votes,
+//     date: req.body.date,
+//     report: req.body.report,
+//     authorID: req.body.authorID
+//   })
+//   await newReply.save()
+//   await Post.findOneAndUpdate({"id": req.body.postID}, {$inc: {numOfReplies: 1}})
+//   res.send("New Reply")
+// })
 
 // This is an admin endpoint
 app.get("/Delete", async (req, res) => {
