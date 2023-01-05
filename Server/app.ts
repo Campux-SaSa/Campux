@@ -51,30 +51,16 @@ interface IPost{
      campus: string
      date: string
      votes: number
+     numOfVotes: Number
      authorID: string
      numOfReplies: number
      numOfViews: number
+     options: [IOption]
      channel: string
      report: number
      attachment?: IAttachment
      subscribers: [string]
 }
-
-const postSchema = new Schema<IPost>({
-  id: {type: String, required: true},
-  title: {type: String, required: true},
-  body: {type: String},
-  campus: {type: String, required: true},
-  date: {type: String, required: true},
-  votes: {type: Number, required: true},
-  authorID: {type: String, required: true},
-  numOfReplies: {type: Number, required: true},
-  numOfViews: {type: Number, required: true},
-  channel: {type: String, required: true},
-  report: {type: Number, required: true},
-  attachment: {type: attachmentSchema, required: false},
-  subscribers: {type: [String], required: false}
-})
 
 interface IOption{
   id: string
@@ -87,31 +73,50 @@ const optionSchema = new Schema<IOption>({
   votes: {type: Number, required: true}
 })
 
-interface IPoll {
-  id: string
-  title: string
-  body?: string
-  date: string
-  authorID: string
-  options: [IOption]
-  numOfViews: number
-  numOfVotes: number
-  channel: string
-  report: number
-}
-
-const pollSchema = new Schema<IPoll>({
+const postSchema = new Schema<IPost>({
   id: {type: String, required: true},
   title: {type: String, required: true},
   body: {type: String},
+  campus: {type: String, required: true},
   date: {type: String, required: true},
+  votes: {type: Number, required: false},
+  numOfVotes: {type: Number, required: false},
   authorID: {type: String, required: true},
-  options: {type: [optionSchema], required: true},
+  numOfReplies: {type: Number, required: true},
   numOfViews: {type: Number, required: true},
-  numOfVotes: {type: Number, required: true},
+  options: {type: [optionSchema], required: false},
   channel: {type: String, required: true},
-  report: {type: Number, required: true}
+  report: {type: Number, required: true},
+  attachment: {type: attachmentSchema, required: false},
+  subscribers: {type: [String], required: false}
 })
+
+
+// interface IPoll {
+//   id: string
+//   title: string
+//   body?: string
+//   date: string
+//   authorID: string
+//   options: [IOption]
+//   numOfViews: number
+//   numOfVotes: number
+//   channel: string
+//   report: number
+// }
+
+// const pollSchema = new Schema<IPoll>({
+//   id: {type: String, required: true},
+//   title: {type: String, required: true},
+//   body: {type: String},
+//   date: {type: String, required: true},
+//   authorID: {type: String, required: true},
+//   options: {type: [optionSchema], required: true},
+//   numOfViews: {type: Number, required: true},
+//   numOfVotes: {type: Number, required: true},
+//   channel: {type: String, required: true},
+//   report: {type: Number, required: true}
+// })
 
 
 // 2. Create a Schema corresponding to the document interface.
@@ -126,7 +131,7 @@ const userSchema = new Schema<IUser>({
 const Post = model<IPost>('Post', postSchema);
 const Reply = model<IReply>('Reply', replySchema);
 const Attachment = model<IAttachment>('Attachment', attachmentSchema)
-const Poll = model<IPoll>('Poll', pollSchema)
+// const Poll = model<IPoll>('Poll', pollSchema)
 
 async function run() {
   // 4. Connect to MongoDB
